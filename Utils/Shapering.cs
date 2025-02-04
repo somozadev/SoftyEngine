@@ -5,9 +5,10 @@ namespace Softine.Utils;
 
 public static class Shapering
 {
+    private static Random rnd = new Random();
     public static CircleShape CreateCircle(float radius = 10.0f, Color? color = null, Vector2f? position = null)
     {
-        color ??= new Color(100, 250, 50);
+        color ??= new Color(100, 250, 50, 0);
         position ??= new Vector2f(0, 0);
 
         CircleShape cs = new CircleShape(radius);
@@ -19,8 +20,11 @@ public static class Shapering
 
     public static VertexArray CreateLine(Vector2f posA, Vector2f posB,Color? color = null)
     {
-        color ??= new Color(250, 50, 50);
-
+        color ??= new Color(
+            (byte)rnd.Next(256),
+            (byte)rnd.Next(256),
+            (byte)rnd.Next(256)
+        );
         VertexArray line;
         line = new VertexArray(PrimitiveType.Lines, 2);
         line[0] = new Vertex(new Vector2f(posA.X, posA.Y), (Color)color);

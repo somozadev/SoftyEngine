@@ -6,20 +6,19 @@ using SoftyEngine.ECS;
 namespace Softine
 {
     [Serializable]
-    public class SoftBodyComponent : Component
+    public class SoftBodyComponent : PhysicsComponent
     {
-        public List<PointMassComponent> Points { get; private set; }
+        public List<SpringBaseComponent>? Springs { get; protected init; }
         public List<PointMassComponent> Frame { get; private set; }
-        public List<SpringComponent> Springs { get; private set; }
         public SoftBodyType BodyType { get; private set; }
 
-        public int NumSize { get; set; }
 
         public SoftBodyComponent(SoftBodyType bodyType)
         {
             PhysicsSystem.Register(this);
+            CollisionSystem.Register(this);
             Points = new List<PointMassComponent>();
-            Springs = new List<SpringComponent>();
+            Springs = new List<SpringBaseComponent>();
             Frame = new List<PointMassComponent>();
             BodyType = bodyType;
             NumSize = 5;
@@ -55,13 +54,13 @@ namespace Softine
                     }
 
                     for (var i = 0; i < numPoints; i++)
-                        Springs.Add(new SpringComponent(Points[i], Points[(i + 1) % numPoints], 50f, 1f));
+                        Springs.Add(new SpringComponent(Points[i], Points[(i + 1) % numPoints], 150f, 1f));
                     for (var i = 0; i < numPoints; i++)
                     {
-                        for (var j = 1; j <= 2; j++)
+                        for (var j = 1; j <= 3; j++)
                         {
-                            var oppositeIndex = (i + j * (numPoints / 2)) % numPoints;
-                            Springs.Add(new SpringComponent(Points[i], Points[oppositeIndex], 50f, 1f));
+                            var oppositeIndex = (i + j * (numPoints / 3)) % numPoints;
+                            Springs.Add(new SpringComponent(Points[i], Points[oppositeIndex], 150f, 1f));
                         }
                     }
 
@@ -87,12 +86,12 @@ namespace Softine
                     Frame.Add(new PointMassComponent(1f, new Vector2f(center.X + halfSize, center.Y + halfSize),
                         true));
 
-                    Springs.Add(new SpringComponent(Points[0], Points[1], 25f, 2.5f));
-                    Springs.Add(new SpringComponent(Points[1], Points[3], 25f, 2.5f));
-                    Springs.Add(new SpringComponent(Points[3], Points[2], 25f, 2.5f));
-                    Springs.Add(new SpringComponent(Points[3], Points[0], 25f, 2.5f));
-                    Springs.Add(new SpringComponent(Points[0], Points[2], 25f, 2.5f));
-                    Springs.Add(new SpringComponent(Points[2], Points[1], 25f, 2.5f));
+                    Springs.Add(new SpringComponent(Points[0], Points[1], 125f, 2.5f));
+                    Springs.Add(new SpringComponent(Points[1], Points[3], 125f, 2.5f));
+                    Springs.Add(new SpringComponent(Points[3], Points[2], 125f, 2.5f));
+                    Springs.Add(new SpringComponent(Points[3], Points[0], 125f, 2.5f));
+                    Springs.Add(new SpringComponent(Points[0], Points[2], 125f, 2.5f));
+                    Springs.Add(new SpringComponent(Points[2], Points[1], 125f, 2.5f));
 
                     break;
                 case SoftBodyType.TRIANGLE:
@@ -110,7 +109,7 @@ namespace Softine
                     }
 
                     for (int i = 0; i < 3; i++)
-                        Springs.Add(new SpringComponent(Points[i], Points[(i + 1) % 3], 10f, 1f));
+                        Springs.Add(new SpringComponent(Points[i], Points[(i + 1) % 3], 110f, 1f));
 
                     break;
                 case SoftBodyType.POLY:
@@ -129,7 +128,7 @@ namespace Softine
 
                     for (int i = 0; i < numSides; i++)
                     {
-                        Springs.Add(new SpringComponent(Points[i], Points[(i + 1) % numSides], 10f, 1f));
+                        Springs.Add(new SpringComponent(Points[i], Points[(i + 1) % numSides], 110f, 1f));
                     }
 
                     for (int i = 0; i < numSides; i++)
@@ -140,7 +139,7 @@ namespace Softine
                             int targetIndex = (i + j * step) % numSides;
                             if (i != targetIndex)
                             {
-                                Springs.Add(new SpringComponent(Points[i], Points[targetIndex], 10f, 1f));
+                                Springs.Add(new SpringComponent(Points[i], Points[targetIndex], 110f, 1f));
                             }
                         }
                     }
@@ -149,6 +148,13 @@ namespace Softine
                 default:
                     throw new ArgumentOutOfRangeException();
             }
+
+            if (Points == null) return;
+            foreach (var point in Points)
+                entity.AddComponent(point);
+            if (Springs == null) return;
+            foreach (var spring in Springs)
+                entity.AddComponent(spring);
         }
 
         public Vector2f GetPosition()
@@ -167,7 +173,7 @@ namespace Softine
             var center = GetPosition();
             var totalAngle = 0.0f;
             var count = 0;
-            
+
             foreach (var point in Points)
             {
                 foreach (var fpoint in Frame)
@@ -193,6 +199,10 @@ namespace Softine
             var angle = (float)Math.Acos(cosineAngle);
             return angle;
         }
+    }
+
+    public interface IPhysicsComponent
+    {
     }
 
     public enum SoftBodyType

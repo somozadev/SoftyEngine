@@ -84,7 +84,13 @@ namespace Softine.Utils
         {
             return (float)Math.Sqrt(vector.X * vector.X + vector.Y * vector.Y);
         }
-
+        public static Vector2f ClampMagnitude(Vector2f vector, float maxMagnitude)
+        {
+            var magnitude = Magnitude(vector);
+            if (magnitude > maxMagnitude)
+                return (vector / magnitude) * maxMagnitude;
+            return vector;
+        }
         public static float SqrMagnitude(Vector2f vector)
         {
             return vector.X * vector.X + vector.Y * vector.Y;

@@ -1,25 +1,19 @@
-﻿using Softine;
-using Softine.Utils;
+﻿using SoftBody;
 
-namespace SoftBody
+namespace SoftyEngine.ECS
 {
     [Serializable]
-    public class SpringComponent : Component
+    public class SpringComponent : SpringBaseComponent
     {
-        public PointMassComponent PointA { get; }
-        public PointMassComponent PointB { get; }
-        public float RestLength { get; }
         public float Stiffness { get; }
-        public float Damping { get; } //reduce excessive oscillation 
-        // public VertexArray  Visuals;
+        public float Damping { get; }
 
         public SpringComponent(PointMassComponent pointA, PointMassComponent pointB, float stiffness, float damping)
+            :
+            base(pointA, pointB)
         {
-            PointA = pointA;
-            PointB = pointB;
-            RestLength = Vector2Utils.Distance(PointA.Position, PointB.Position);
             Stiffness = stiffness;
             Damping = damping;
-             }
+        }
     }
 }

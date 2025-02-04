@@ -32,6 +32,20 @@ public class Transform : Component
         Position += translation;
     }
 
+    public void AddX(float addedX)
+    {
+        var xpos = Position.X;
+        xpos += addedX;
+        Position = new Vector2f(xpos, Position.Y);
+    }
+
+    public void AddY(float addedY)
+    {
+        var ypos = Position.Y;
+        ypos += addedY;
+        Position = new Vector2f(Position.X,ypos);
+    }
+
     public void Rotate(float angle)
     {
         Rotation += angle;

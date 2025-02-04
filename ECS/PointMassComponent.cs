@@ -9,23 +9,43 @@ namespace SoftBody
     [Serializable]
     public class PointMassComponent : Component
     {
-        public float Mass{ get; set; }
-        public Vector2f Position{ get; set; }
-        public Vector2f Velocity{ get; set; }
-        public Vector2f Acceleration { get; set; } 
-        public bool ForcesApplyOnIt { get; set; } 
-        // public CircleShape Visuals;
+        public float Mass { get; set; }
+        public Vector2f Position { get; set; }
+        public Vector2f Velocity { get; set; }
+        public Vector2f Acceleration { get; set; }
+        public bool ForcesApplyOnIt { get; set; }
 
-        public PointMassComponent(float mass, Vector2f position, bool forcesApplyOnIt = false)
+        public float ColliderArea { get; set; }
+
+        public float AngularVelocity { get; set; }
+        public float Inertia { get; set; }
+
+
+        public PointMassComponent(float mass, Vector2f position, bool forcesApplyOnIt = false, float colliderArea = 0)
         {
             Mass = mass;
             Position = position;
             ForcesApplyOnIt = forcesApplyOnIt;
-            //
-            // Visuals = new CircleShape(10.0f);
-            // Visuals.FillColor = new Color(100, 250, 50);
-            // Visuals.Origin = new Vector2f(10.0f, 10.0f);
-            // Visuals.Position = new Vector2f(Position.X, Position.Y);
+            ColliderArea = colliderArea; //the circle itself
+        }
+
+        public void UpdateInertia(string newInteria, int n = 0)
+        {
+            switch (newInteria)
+            {
+                case "circle":
+                    Inertia = (1f / 2f) * Mass * ColliderArea/2 * ColliderArea/2;
+                    break;
+                case "square":
+                    Inertia = (1f / 12f) * Mass * ( ColliderArea * ColliderArea + ColliderArea * ColliderArea);
+                    break;
+                case "triangle":
+                    Inertia = (1f / 18f) * Mass * (ColliderArea * ColliderArea +  ColliderArea * ColliderArea); //b at 2 +h at 2
+                    break;
+                case "polygon":
+                    Inertia = (1f / 6f) * Mass * ColliderArea * ColliderArea * ( 1 / (1 - (1/( n * MathF.Cos((float)Math.PI/n)))));
+                    break;
+            }
         }
     }
 }

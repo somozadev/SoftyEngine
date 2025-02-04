@@ -1,15 +1,19 @@
 {
   "version": 2,
-  "dgSpecHash": "Xo7aNBaZ3rKOaqH9rh9aP9CaEXnedGa1qn5ojf9sRbKGxRVbvGs4y4MRKUqIBSw/m2x75RYlC941e9QyqEUwew==",
+  "dgSpecHash": "GCwsCFO0ohOpEZ65WpHcVbfu12c4KT2Ld0rIx5lVvwdVDYr9pXoKS4xaRSnfBuE9pdotpw4LKhcyj2k2rLFypA==",
   "success": true,
   "projectFilePath": "C:\\Users\\mesom\\RiderProjects\\SoftyEngine\\SoftyEngine\\SoftyEngine.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\mesom\\.nuget\\packages\\csfml\\2.6.1\\csfml.2.6.1.nupkg.sha512",
+    "C:\\Users\\mesom\\.nuget\\packages\\imgui.net\\1.91.6.1\\imgui.net.1.91.6.1.nupkg.sha512",
     "C:\\Users\\mesom\\.nuget\\packages\\sfml.audio\\2.6.0\\sfml.audio.2.6.0.nupkg.sha512",
     "C:\\Users\\mesom\\.nuget\\packages\\sfml.graphics\\2.6.0\\sfml.graphics.2.6.0.nupkg.sha512",
     "C:\\Users\\mesom\\.nuget\\packages\\sfml.net\\2.6.0\\sfml.net.2.6.0.nupkg.sha512",
     "C:\\Users\\mesom\\.nuget\\packages\\sfml.system\\2.6.0\\sfml.system.2.6.0.nupkg.sha512",
-    "C:\\Users\\mesom\\.nuget\\packages\\sfml.window\\2.6.0\\sfml.window.2.6.0.nupkg.sha512"
+    "C:\\Users\\mesom\\.nuget\\packages\\sfml.window\\2.6.0\\sfml.window.2.6.0.nupkg.sha512",
+    "C:\\Users\\mesom\\.nuget\\packages\\system.buffers\\4.5.1\\system.buffers.4.5.1.nupkg.sha512",
+    "C:\\Users\\mesom\\.nuget\\packages\\system.numerics.vectors\\4.5.0\\system.numerics.vectors.4.5.0.nupkg.sha512",
+    "C:\\Users\\mesom\\.nuget\\packages\\system.runtime.compilerservices.unsafe\\6.0.0\\system.runtime.compilerservices.unsafe.6.0.0.nupkg.sha512"
   ],
   "logs": []
 }

@@ -34,7 +34,11 @@ public class Scene(string name)
         _entities.Remove(entity);
     }
 
-
+    public ISystem GetSystem(Type type)
+    {
+        return _systems.FirstOrDefault(system => system.GetType() == type);
+    }
+    
     public void AddSystem(ISystem system)
     {
         _systems.Add(system);
@@ -44,7 +48,10 @@ public class Scene(string name)
     {
         _physicsSystems.Add(physicsSystem);
     }
-
+    public T GetPhysicsSystem<T>() where T : IPhysicsSystem
+    {
+        return _physicsSystems.OfType<T>().FirstOrDefault();
+    }
 
     public void Update(float deltaTime)
     {

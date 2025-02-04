@@ -19,7 +19,7 @@ namespace Softine
         {
             RenderWindow window = InitWindow();
             Clock clock = new Clock();
-
+            ImGuiManager imgui = new ImGuiManager(window);
             var sceneManager = new SceneManager();
             Scene scene = new Scene("FirstScene");
             // Entity entity = scene.Instantiate(new Entity("Body"));
@@ -38,12 +38,13 @@ namespace Softine
             //     new Transform(new Vector2f(GameState.windowWidth / 1.5f, GameState.windowHeight / 2), 100));
             // entity3.AddComponent(new SoftBodyComponent(SoftBodyType.POLY));
             // entity3.AddComponent(new ComplexRendererComponent());
-
+            window.SetActive(true);
             scene.AddSystem(new TransformSystem());
             scene.AddSystem(new RenderSystem(window));
-            scene.AddSystem(new ComplexRenderSystem(window));
+            scene.AddSystem(new SoftRenderSystem(window));
             scene.AddPhysicsSystem(new PhysicsSystem());
             scene.AddPhysicsSystem(new CollisionSystem());
+            scene.AddPhysicsSystem(new RigidCollisionSystem());
             sceneManager.AddScene(scene);
             Font font = new Font("Fonts/AldotheApache.ttf");
             Text fpsText = new Text("FPS: 0", font, 24)
@@ -51,30 +52,107 @@ namespace Softine
                 FillColor = Color.White,
                 Position = new Vector2f(10, 10)
             };
+
+            bool leftMouseHeld = false;
+            bool rightMouseHeld = false;
+            float creationCooldown = 0.6f;
+            float timeSinceLastCreation = 0f;
+            RigidBodyType selectedRigidType = RigidBodyType.CIRCLE;
+            SoftBodyType selectedSoftType = SoftBodyType.CIRCLE;
+            bool rigidbodyMode = false;
             window.MouseButtonPressed += (sender, e) =>
             {
-                Vector2f mousePosition = new Vector2f(e.X, e.Y);
                 if (e.Button == Mouse.Button.Left)
-                {
-                    CreateSoftBodyEntity(scene, mousePosition, 100f, SoftBodyType.SQUARE);
-                }
+                    leftMouseHeld = true;
+
                 if (e.Button == Mouse.Button.Right)
+                    rightMouseHeld = true;
+            };
+            window.KeyPressed += (sender, args) =>
+            {
+                if (args.Code == Keyboard.Key.Space)
                 {
-                    CreateSoftBodyEntity(scene, mousePosition, 100f, SoftBodyType.CIRCLE);
+                    rigidbodyMode = !rigidbodyMode;
+                    if(rigidbodyMode)
+                        creationCooldown = 0.05f;
+                    else
+                        creationCooldown = 0.6f;
+
+                }
+
+                if (args.Control)
+                {
+                    if (rigidbodyMode)
+                    {
+                        if (selectedRigidType == (RigidBodyType)3)
+                            selectedRigidType = (RigidBodyType)0;
+                        else
+                            selectedRigidType += 1;
+                    }
+                    else
+                    {
+                        if (selectedSoftType == (SoftBodyType)3)
+                            selectedSoftType = (SoftBodyType)0;
+                        else
+                            selectedSoftType += 1;
+                    }
                 }
             };
-            var fixedDeltaTime = 1.0f / 120.0f;
-            float accumulatedTime = 0.0f;
+            window.MouseButtonReleased += (sender, e) =>
+            {
+                if (e.Button == Mouse.Button.Left)
+                    leftMouseHeld = false;
 
+                if (e.Button == Mouse.Button.Right)
+                    rightMouseHeld = false;
+            };
+
+            // window.MouseButtonPressed += (sender, e) =>
+            // {
+            //     Vector2f mousePosition = new Vector2f(e.X, e.Y);
+            //     if (e.Button == Mouse.Button.Left)
+            //     {
+            //         CreateSoftBodyEntity(scene, mousePosition, 100f, SoftBodyType.SQUARE);
+            //     }
+            //
+            //     if (e.Button == Mouse.Button.Right)
+            //     {
+            //         CreateRigidBodyEntity(scene, mousePosition, 100f, RigidBodyType.CIRCLE);
+            //     }
+            // };
+            var fixedDeltaTime = 1.0f / 60.0f;
+            float accumulatedTime = 0.0f;
             while (window.IsOpen)
             {
                 window.DispatchEvents();
                 window.Clear(GameState.windowColor);
 
-
                 float deltaTime = clock.Restart().AsSeconds();
+                timeSinceLastCreation += deltaTime;
+
                 accumulatedTime += deltaTime;
                 float fps = 1.0f / deltaTime;
+
+
+                Vector2i mousePos = Mouse.GetPosition(window);
+                Vector2f mousePosition = new Vector2f(mousePos.X, mousePos.Y);
+                if (leftMouseHeld && timeSinceLastCreation >= creationCooldown)
+                {
+                    // CreateSoftBodyEntity(scene, mousePosition, 100f, SoftBodyType.SQUARE);
+                    PhysicsSystem t = scene.GetPhysicsSystem<PhysicsSystem>();
+
+                    t.ApplyExplosionForce(mousePosition, 150f, 100f);
+                }
+
+                if (rightMouseHeld && timeSinceLastCreation >= creationCooldown)
+                {
+                    if (rigidbodyMode)
+                        CreateRigidBodyEntity(scene, mousePosition, 100f, selectedRigidType);
+                    else
+                        CreateSoftBodyEntity(scene, mousePosition, 100, selectedSoftType);
+                    timeSinceLastCreation = 0f;
+                }
+
 
                 sceneManager.Update(deltaTime);
                 while (accumulatedTime >= fixedDeltaTime)
@@ -83,11 +161,16 @@ namespace Softine
                     accumulatedTime -= fixedDeltaTime;
                 }
 
-                fpsText.DisplayedString = $"FPS: {fps:F1}   \n    Entities: {scene.GetEntitiesAmount()}";
+                string selmode = rigidbodyMode ? "rigidbody" : "softbody";
+                string selsubtype = rigidbodyMode ? selectedRigidType.ToString() : selectedSoftType.ToString();
+                fpsText.DisplayedString =
+                    $"FPS: {fps:F1}   \n    Entities: {scene.GetEntitiesAmount()}  \n    Mousepos: {mousePos.X} , {mousePos.Y} \n    Mode: {selmode}  \n    Type: {selsubtype}";
                 window.Draw(fpsText);
 
                 window.Display();
             }
+
+            window.SetActive(false);
         }
 
         private static RenderWindow InitWindow()
@@ -112,7 +195,16 @@ namespace Softine
             Entity entity = scene.Instantiate(new Entity($"Entity_{Guid.NewGuid()}"));
             entity.AddComponent(new Transform(position, scale));
             entity.AddComponent(new SoftBodyComponent(softBodyType));
-            entity.AddComponent(new ComplexRendererComponent());
+            entity.AddComponent(new SoftRendererComponent());
+        }
+
+        private static void CreateRigidBodyEntity(Scene scene, Vector2f position, float scale,
+            RigidBodyType rigidBodyType)
+        {
+            Entity entity = scene.Instantiate(new Entity($"Entity_{Guid.NewGuid()}"));
+            entity.AddComponent(new Transform(position, scale));
+            entity.AddComponent(new RigidBodyComponent(rigidBodyType));
+            entity.AddComponent(new RendererComponent(entity.GetComponent<RigidBodyComponent>().Shape));
         }
 
 

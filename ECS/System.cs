@@ -4,6 +4,7 @@ using SFML.Window;
 using SoftBody;
 using Softine;
 using Softine.Utils;
+using System.Threading.Tasks;
 
 namespace SoftyEngine.ECS;
 
@@ -66,10 +67,18 @@ public class RenderSystem : System<RendererComponent>, ISystem
 
     protected override void ProcessUpdate(RendererComponent component, float deltaTime)
     {
-        // if (component.IsShape)
-        //     _window.Draw(component.Drawable);
-        // else
-        //     _window.Draw(component.VDrawable);
+        if (component.Entity.TryGetComponent<SoftBodyComponent>(out var softBody)) return;
+        var point = component.Entity.GetComponent<Transform>().Position;
+        component.Drawable.Position = point;
+
+        if (component.IsShape)
+        {
+            _window.Draw(component.Drawable);
+        }
+        else
+        {
+            _window.Draw(component.VDrawable);
+        }
     }
 
     protected override void ProcessFixedUpdate(RendererComponent component, float fixedDeltaTime)
@@ -78,67 +87,211 @@ public class RenderSystem : System<RendererComponent>, ISystem
     }
 }
 
-public class ComplexRenderSystem : System<ComplexRendererComponent>, ISystem
+public class SoftRenderSystem : System<SoftRendererComponent>, ISystem
 {
     private RenderWindow _window;
 
-    public ComplexRenderSystem(RenderWindow window)
+    public SoftRenderSystem(RenderWindow window)
     {
         _window = window;
     }
 
-    protected override void ProcessUpdate(ComplexRendererComponent component, float deltaTime)
+    protected override void ProcessUpdate(SoftRendererComponent component, float deltaTime)
     {
-        component.Entity.TryGetComponent<SoftBodyComponent>(out var softBody);
-        var points = component.Entity.GetComponent<SoftBodyComponent>().Points;
-        var springs = component.Entity.GetComponent<SoftBodyComponent>().Springs;
-        var pointsL = softBody.Points.Count;
-        var springsL = softBody.Springs.Count;
+        if (!component.Entity.TryGetComponent(out SoftBodyComponent softBody)) return;
+        var points = softBody.Points;
+        var springs = softBody.Springs;
+        int pointsL = points.Count;
+        int springsL = springs.Count;
 
         if (component.RendererComponents.Count != (pointsL + springsL))
         {
-            component.RendererComponents = new List<RendererComponent>();
+            component.RendererComponents.Clear();
             foreach (var point in points)
             {
-                component.RendererComponents.Add(
-                    new RendererComponent(Shapering.CreateCircle(10f, null, point.Position)));
+                var circleRenderer = new RendererComponent(Shapering.CreateCircle(10f, null, point.Position));
+                component.RendererComponents.Add(circleRenderer);
+                component.Entity.AddComponent(circleRenderer);
             }
 
             foreach (var spring in springs)
             {
-                component.RendererComponents.Add(
-                    new RendererComponent(Shapering.CreateLine(spring.PointA.Position, spring.PointB.Position)));
+                var lineRenderer =
+                    new RendererComponent(Shapering.CreateLine(spring.PointA.Position, spring.PointB.Position));
+                component.RendererComponents.Add(lineRenderer);
+                component.Entity.AddComponent(lineRenderer);
             }
-
-            foreach (var c in component.RendererComponents)
-                component.Entity.AddComponent(c);
         }
-
-        foreach (var renderer in component.RendererComponents)
+        int index = 0;
+        foreach (var point in points)
         {
-            if (renderer.IsShape)
+            var renderer = component.RendererComponents[index++];
+            renderer.Drawable.Position = point.Position;
+            _window.Draw(renderer.Drawable);
+        }
+        foreach (var spring in springs)
+        {
+            var renderer = component.RendererComponents[index++];
+            if (!renderer.IsShape )
             {
-                foreach (var point in softBody.Points)
-                {
-                    renderer.Drawable.Position = point.Position;
-                    _window.Draw(renderer.Drawable);
-                }
+                renderer.VDrawable = Shapering.CreateLine(spring.PointA.Position, spring.PointB.Position);
             }
+            _window.Draw(renderer.VDrawable);
+        }
+        
+      
+    }
 
-            if (!renderer.IsShape)
-            {
-                foreach (var spring in softBody.Springs)
-                {
-                    renderer.VDrawable = Shapering.CreateLine(spring.PointA.Position, spring.PointB.Position);
-                    _window.Draw(renderer.VDrawable);
-                }
-            }
+    protected override void ProcessFixedUpdate(SoftRendererComponent component, float fixedDeltaTime)
+    {
+        return;
+    }
+}
+
+public class RigidCollisionSystem : System<RigidBodyComponent>, IPhysicsSystem
+{
+    protected override void ProcessUpdate(RigidBodyComponent component, float deltaTime)
+    {
+    }
+
+    protected override void ProcessFixedUpdate(RigidBodyComponent component, float fixedDeltaTime)
+    {
+        DetectAndResolveCollisions(component);
+    }
+
+    private void DetectAndResolveCollisions(RigidBodyComponent currentBody)
+    {
+        var allBodies = GetAllComponents();
+        foreach (var otherBody in allBodies)
+        {
+            if (currentBody == otherBody) continue;
+            if (currentBody.BodyType == RigidBodyType.CIRCLE && otherBody.BodyType == RigidBodyType.CIRCLE)
+                DetectPointToPointCollisions(currentBody, otherBody);
+            if (currentBody.BodyType == RigidBodyType.SQUARE && otherBody.BodyType == RigidBodyType.SQUARE)
+                DetectEdgeToEdgeCollisions(currentBody, otherBody);
+            // DetectPointToEdgeCollisions(currentBody, otherBody);
+            // DetectEdgeToEdgeCollisions(currentBody, otherBody);
         }
     }
 
-    protected override void ProcessFixedUpdate(ComplexRendererComponent component, float fixedDeltaTime)
+    private void DetectPointToPointCollisions(RigidBodyComponent bodyA, RigidBodyComponent bodyB)
     {
-        return;
+        var pointA = bodyA.Points[0];
+        var pointB = bodyB.Points[0];
+
+        Vector2f direction = pointB.Position - pointA.Position;
+        float distance = Vector2Utils.Magnitude(direction);
+        float minDistance = pointA.ColliderArea + pointB.ColliderArea;
+
+        if (distance < minDistance && distance > 0.0001f)
+        {
+            Vector2f normal = direction / distance;
+            float overlap = minDistance - distance;
+
+            pointA.Position -= normal * (overlap / 2f);
+            pointB.Position += normal * (overlap / 2f);
+
+            ApplyCollisionResponse(pointA, pointB, normal);
+        }
+    }
+
+    private void DetectEdgeToEdgeCollisions(RigidBodyComponent bodyA, RigidBodyComponent bodyB)
+    {
+        var trfA = bodyA.Entity.GetComponent<Transform>();
+        var trfB = bodyB.Entity.GetComponent<Transform>();
+
+        var pointA = bodyA.Points[0];
+        var pointB = bodyB.Points[0];
+
+        float leftA = trfA.Position.X - bodyA.HalfSize; //for now, only l=l cubes
+        float rightA = trfA.Position.X + bodyA.HalfSize;
+        float topA = trfA.Position.Y - bodyA.HalfSize;
+        float bottomA = trfA.Position.Y + bodyA.HalfSize;
+
+        float leftB = trfB.Position.X - bodyB.HalfSize;
+        float rightB = trfB.Position.X + bodyB.HalfSize;
+        float topB = trfB.Position.Y - bodyB.HalfSize;
+        float bottomB = trfB.Position.Y + bodyB.HalfSize;
+
+        if (rightA < leftB || leftA > rightB || bottomA < topB || topA > bottomB) return;
+
+
+        float directionX = pointB.Position.X - pointA.Position.X;
+        float directionY = pointB.Position.Y - pointA.Position.Y;
+
+        float overlapX = (bodyA.HalfSize + bodyB.HalfSize) - Math.Abs(directionX);
+        float overlapY = (bodyA.HalfSize + bodyB.HalfSize) - Math.Abs(directionY);
+        Vector2f normal;
+        if (overlapX < overlapY)
+            normal = new Vector2f(directionX > 0 ? 1 : -1, 0);
+        else
+            normal = new Vector2f(0, directionY > 0 ? 1 : -1);
+
+        float contactX = (Math.Max(leftA, leftB) + Math.Min(rightA, rightB)) * 0.5f;
+        float contactY = (Math.Max(topA, topB) + Math.Min(bottomA, bottomB)) * 0.5f;
+        Vector2f contactPoint = new Vector2f(contactX, contactY);
+        ApplyCollisionResponse(pointA, pointB, contactPoint, normal);
+    }
+
+    private void ApplyCollisionResponse(PointMassComponent boxA, PointMassComponent boxB, Vector2f contactPoint,
+        Vector2f normal)
+    {
+        var rA = contactPoint - boxA.Position;
+        var rB = contactPoint - boxB.Position;
+
+        Vector2f velocityA = boxA.Velocity + Vector2Utils.Cross(boxA.AngularVelocity, rA);
+        Vector2f velocityB = boxB.Velocity + Vector2Utils.Cross(boxB.AngularVelocity, rB);
+
+        Vector2f relativeVelocity = velocityB - velocityA;
+        float velocityAlongNormal = Vector2Utils.Dot(relativeVelocity, normal);
+
+        if (velocityAlongNormal > 0) return;
+
+        // Coeficiente de restitución (elasticidad)
+        float restitution = 0.5f;
+
+        // Factor de impulso basado en masa y momento de inercia
+        float invMassA = 1 / boxA.Mass;
+        float invMassB = 1 / boxB.Mass;
+        float invInertiaA = 1 / boxA.Inertia;
+        float invInertiaB = 1 / boxB.Inertia;
+
+        // Cálculo del denominador del impulso
+        float rA_cross_N = Vector2Utils.Cross(rA, normal);
+        float rB_cross_N = Vector2Utils.Cross(rB, normal);
+        float denominator = invMassA + invMassB + (rA_cross_N * rA_cross_N) * invInertiaA +
+                            (rB_cross_N * rB_cross_N) * invInertiaB;
+
+        // Impulso escalar
+        float impulseScalar = -(1 + restitution) * velocityAlongNormal / denominator;
+
+        // Impulso total
+        Vector2f impulse = impulseScalar * normal;
+
+        // Aplicar el impulso lineal
+        boxA.Velocity -= impulse * invMassA;
+        boxB.Velocity += impulse * invMassB;
+
+        // Aplicar el impulso angular
+        boxA.AngularVelocity -= rA_cross_N * impulseScalar * invInertiaA;
+        boxB.AngularVelocity += rB_cross_N * impulseScalar * invInertiaB;
+    }
+
+    private void ApplyCollisionResponse(PointMassComponent pointA, PointMassComponent pointB, Vector2f normal)
+    {
+        Vector2f relativeVelocity = pointB.Velocity - pointA.Velocity;
+        float velocityAlongNormal = Vector2Utils.Dot(relativeVelocity, normal);
+
+        if (velocityAlongNormal > 0) return;
+
+        float restitution = 0.5f;
+        float impulseScalar = -(1 + restitution) * velocityAlongNormal;
+        impulseScalar /= (1 / pointA.Mass) + (1 / pointB.Mass);
+
+        Vector2f impulse = impulseScalar * normal;
+
+        pointA.Velocity -= impulse / pointA.Mass;
+        pointB.Velocity += impulse / pointB.Mass;
     }
 }
 
@@ -298,13 +451,11 @@ public class CollisionSystem : System<SoftBodyComponent>, IPhysicsSystem
 
         if (Math.Abs(rxs) < 0.0001f && Math.Abs(qpCrossR) < 0.0001f)
         {
-            // Colineales
             return false;
         }
 
         if (Math.Abs(rxs) < 0.0001f)
         {
-            // Paralelos
             return false;
         }
 
@@ -321,48 +472,71 @@ public class CollisionSystem : System<SoftBodyComponent>, IPhysicsSystem
     }
 }
 
-public class PhysicsSystem : System<SoftBodyComponent>, IPhysicsSystem
+public class PhysicsSystem : System<PhysicsComponent>, IPhysicsSystem
 {
-    private Vector2f _gravity = new(0, 200f);
+    private Vector2f _gravity = new(0, 600f);
+    private const double TOLERANCE = 0.0001f;
 
-    protected override void ProcessUpdate(SoftBodyComponent component, float deltaTime)
+    protected override void ProcessUpdate(PhysicsComponent component, float deltaTime)
     {
         return;
     }
 
-    protected override void ProcessFixedUpdate(SoftBodyComponent component, float fixedDeltaTime)
+    protected override void ProcessFixedUpdate(PhysicsComponent component, float fixedDeltaTime)
     {
         ApplyGravity(component);
-        ApplySpringForce(component);
-        foreach (var point in component.Points)
-            UpdatePosition(point, fixedDeltaTime);
-        foreach (var point in component.Points)
-            LimitToScreen(point);
+        if (component.GetType() == typeof(SoftBodyComponent))
+            ApplySpringForce((SoftBodyComponent)component);
+        if (component.Points == null) return;
+        Parallel.ForEach(component.Points, point => UpdatePosition(point, fixedDeltaTime));
+        Parallel.ForEach(component.Points, LimitToScreen);
+    }
+
+    public void ApplyExplosionForce(Vector2f explosionCenter, float explosionStrength, float explosionRadius)
+    {
+        var allRigidBodies = GetAllComponents();
+
+        foreach (var rigidBody in allRigidBodies)
+        {
+            if (rigidBody.Entity.TryGetComponent(out PointMassComponent component))
+            {
+                var pos = component.Position;
+                var distance = Vector2Utils.Magnitude(pos - explosionCenter);
+                if (distance > explosionRadius)
+                    continue;
+
+                Vector2f direction = pos - explosionCenter;
+                float distanceNormalized = distance / explosionRadius;
+                float forceMagnitude = explosionStrength * (1 - distanceNormalized);
+                Vector2f force = forceMagnitude * Vector2Utils.Normalize(direction);
+                component.Velocity += force / component.Mass;
+            }
+        }
     }
 
     private void LimitToScreen(PointMassComponent component)
     {
         var componentPosition = component.Position;
         var componentVelocity = component.Velocity;
-        if (componentPosition.X < 0)
+        if (componentPosition.X - component.ColliderArea < 0)
         {
-            componentPosition.X = 0;
+            componentPosition.X = 0 + component.ColliderArea;
             componentVelocity.X = 0;
         }
-        else if (componentPosition.X > GameState.windowWidth)
+        else if (componentPosition.X + component.ColliderArea > GameState.windowWidth)
         {
-            componentPosition.X = GameState.windowWidth;
+            componentPosition.X = GameState.windowWidth - component.ColliderArea;
             componentVelocity.X = 0;
         }
 
-        if (componentPosition.Y < 0)
+        if (componentPosition.Y - component.ColliderArea < 0)
         {
-            componentPosition.Y = 0;
+            componentPosition.Y = 0 + component.ColliderArea;
             componentVelocity.Y = 0;
         }
-        else if (componentPosition.Y > GameState.windowHeight)
+        else if (componentPosition.Y + component.ColliderArea > GameState.windowHeight)
         {
-            componentPosition.Y = GameState.windowHeight;
+            componentPosition.Y = GameState.windowHeight - component.ColliderArea;
             componentVelocity.Y = 0;
         }
 
@@ -374,6 +548,9 @@ public class PhysicsSystem : System<SoftBodyComponent>, IPhysicsSystem
     {
         component.Velocity += component.Acceleration * fixedDeltaTime;
         component.Position += component.Velocity * fixedDeltaTime;
+        component.Entity.GetComponent<Transform>().Position = component.Position;
+        float rotationAngle = component.AngularVelocity * fixedDeltaTime;
+        component.Entity.GetComponent<Transform>().Rotation += rotationAngle;
         component.Acceleration = new Vector2f(0, 0);
     }
 
@@ -383,35 +560,56 @@ public class PhysicsSystem : System<SoftBodyComponent>, IPhysicsSystem
         component.Acceleration += force / component.Mass;
     }
 
-    private void ApplySpringForce(SoftBodyComponent component)
+    private void AddGravity(PointMassComponent component, Vector2f force)
     {
-        
-        foreach (var spring in component.Springs)
-        {
-            var direction = spring.PointB.Position - spring.PointA.Position;
-            var currentLength = Vector2Utils.Magnitude(direction);
-            if (currentLength > 0.0001f)
-            {
-                direction /= currentLength;
-                float forceMagnitude = spring.Stiffness * (currentLength - spring.RestLength);
-                Vector2f force = forceMagnitude * direction;
-        
-                AddForce(spring.PointA, force);
-                AddForce(spring.PointB, -force);
-        
-                Vector2f relativeVelocity = spring.PointB.Velocity - spring.PointA.Velocity;
-                float dampingMagnitude = spring.Damping * Vector2Utils.Dot(relativeVelocity, direction);
-                Vector2f dampingForce = dampingMagnitude * direction;
-        
-                AddForce(spring.PointA, dampingForce);
-                AddForce(spring.PointB, -dampingForce);
-            }
-        }
+        if (!component.ForcesApplyOnIt) return;
+        component.Acceleration += force; //* component.Mass;
     }
 
-    private void ApplyGravity(SoftBodyComponent component)
+    private void ApplySpringForce(SoftBodyComponent component)
     {
-        foreach (var point in component.Points)
-            AddForce(point, _gravity);
+        if (component.Springs != null)
+            Parallel.ForEach(component.Springs, spring =>
+            {
+                if (spring is not SpringComponent elasticSpring) return;
+
+                var direction = elasticSpring.PointB.Position - elasticSpring.PointA.Position;
+                var currentLength = Vector2Utils.Magnitude(direction);
+                if (currentLength > TOLERANCE)
+                {
+                    direction /= currentLength;
+                    float forceMagnitude = elasticSpring.Stiffness * (currentLength - elasticSpring.RestLength);
+                    Vector2f force = forceMagnitude * direction;
+
+                    lock (elasticSpring.PointA)
+                    {
+                        AddForce(elasticSpring.PointA, force);
+                    }
+
+                    lock (elasticSpring.PointB)
+                    {
+                        AddForce(elasticSpring.PointB, -force);
+                    }
+
+                    Vector2f relativeVelocity = elasticSpring.PointB.Velocity - elasticSpring.PointA.Velocity;
+                    float dampingMagnitude = elasticSpring.Damping * Vector2Utils.Dot(relativeVelocity, direction);
+                    Vector2f dampingForce = dampingMagnitude * direction;
+
+                    lock (elasticSpring.PointA)
+                    {
+                        AddForce(elasticSpring.PointA, dampingForce);
+                    }
+
+                    lock (elasticSpring.PointB)
+                    {
+                        AddForce(elasticSpring.PointB, -dampingForce);
+                    }
+                }
+            });
+    }
+
+    private void ApplyGravity(PhysicsComponent component)
+    {
+        if (component.Points != null) Parallel.ForEach(component.Points, point => AddGravity(point, _gravity));
     }
 }

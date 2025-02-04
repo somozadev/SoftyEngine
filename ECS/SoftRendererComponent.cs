@@ -4,19 +4,19 @@ using SoftyEngine.ECS;
 
 namespace Softine;
 
-public class ComplexRendererComponent : Component
+public class SoftRendererComponent : Component
 {
     public List<RendererComponent> RendererComponents { get; set; }
 
-    public ComplexRendererComponent()
+    public SoftRendererComponent()
     {
-        ComplexRenderSystem.Register(this);
+        SoftRenderSystem.Register(this);
         RendererComponents = new List<RendererComponent>();
     }
 
-    public ComplexRendererComponent(IEnumerable<RendererComponent> rendererComponents)
+    public SoftRendererComponent(IEnumerable<RendererComponent> rendererComponents)
     {
-        ComplexRenderSystem.Register(this);
+        SoftRenderSystem.Register(this);
         RendererComponents = rendererComponents.ToList();
     }
 
