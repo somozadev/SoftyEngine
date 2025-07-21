@@ -16,6 +16,10 @@ public abstract class System<T> where T : Component
     {
         Components.Add(component);
     }
+    public static void UnRegister(T component)
+    {
+        Components.Remove(component);
+    }
 
     public static List<T> GetAllComponents()
     {

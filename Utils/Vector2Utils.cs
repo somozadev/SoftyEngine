@@ -17,6 +17,12 @@ namespace Softine.Utils
         public static readonly Vector2i ZeroVectorI = new Vector2i(0, 0);
         public static readonly Vector2i OneVectorI = new Vector2i(1, 1);
 
+        public static Vector2f GetNormalOf(Vector2f v1, Vector2f v2)
+        {
+            var dx = v2.X - v1.X;
+            var dy = v2.Y - v1.Y;
+            return new Vector2f(-dy, dx);
+        }
         public static float AngleBetweenVectors(Vector2f v1, Vector2f v2)
         {
             float dotProduct = v1.X * v2.X + v1.Y * v2.Y;

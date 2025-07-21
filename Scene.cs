@@ -19,6 +19,7 @@ public class Scene(string name)
     {
         return _entities.Count;
     }
+
     public Entity? Get(Guid entityGuid)
     {
         return _entities.Find(e => e.Guid.Equals(entityGuid));
@@ -32,13 +33,14 @@ public class Scene(string name)
     public void Destroy(Entity entity)
     {
         _entities.Remove(entity);
+        entity.Destroy();
     }
 
     public ISystem GetSystem(Type type)
     {
         return _systems.FirstOrDefault(system => system.GetType() == type);
     }
-    
+
     public void AddSystem(ISystem system)
     {
         _systems.Add(system);
@@ -48,6 +50,7 @@ public class Scene(string name)
     {
         _physicsSystems.Add(physicsSystem);
     }
+
     public T GetPhysicsSystem<T>() where T : IPhysicsSystem
     {
         return _physicsSystems.OfType<T>().FirstOrDefault();
@@ -68,5 +71,12 @@ public class Scene(string name)
         {
             physicsSystem.FixedUpdate(fixedDeltaTime);
         }
+    }
+
+    public void ClearScene()
+    {
+        foreach (var entity in _entities.ToList())
+            Destroy(entity);
+        _entities.Clear();
     }
 }

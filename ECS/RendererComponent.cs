@@ -7,7 +7,7 @@ public class RendererComponent : Component
 {
     public bool IsShape => Drawable != null;
     public Shape Drawable { get; private set; }
-    public VertexArray VDrawable { get;  set; }
+    public VertexArray VDrawable { get; set; }
 
     public RendererComponent(Shape shape)
     {
@@ -19,5 +19,10 @@ public class RendererComponent : Component
     {
         RenderSystem.Register(this);
         VDrawable = shape;
+    }
+
+    public override void Destroy()
+    {
+        RenderSystem.UnRegister(this);
     }
 }

@@ -73,11 +73,16 @@ namespace Softine
                 if (args.Code == Keyboard.Key.Space)
                 {
                     rigidbodyMode = !rigidbodyMode;
-                    if(rigidbodyMode)
+                    if (rigidbodyMode)
                         creationCooldown = 0.05f;
                     else
                         creationCooldown = 0.6f;
+                }
 
+                if (args.Code == Keyboard.Key.R)
+                {
+                    scene.ClearScene();
+                    window.Clear(GameState.windowColor);
                 }
 
                 if (args.Control)
@@ -98,6 +103,7 @@ namespace Softine
                     }
                 }
             };
+
             window.MouseButtonReleased += (sender, e) =>
             {
                 if (e.Button == Mouse.Button.Left)

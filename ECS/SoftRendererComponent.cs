@@ -20,6 +20,18 @@ public class SoftRendererComponent : Component
         RendererComponents = rendererComponents.ToList();
     }
 
+    public override void Destroy()
+    {
+        foreach (var rc in RendererComponents.ToList())
+        {
+            RendererComponents.Remove(rc);
+            rc.Destroy();
+        }
+
+        SoftRenderSystem.UnRegister(this);
+    }
+
+
     //
     // private void InitializeDefaultCircle()
     // {

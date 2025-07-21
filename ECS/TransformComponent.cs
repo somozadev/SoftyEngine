@@ -43,7 +43,7 @@ public class Transform : Component
     {
         var ypos = Position.Y;
         ypos += addedY;
-        Position = new Vector2f(Position.X,ypos);
+        Position = new Vector2f(Position.X, ypos);
     }
 
     public void Rotate(float angle)
@@ -59,5 +59,12 @@ public class Transform : Component
     public void ScaleBy(float scaleFactor)
     {
         Scale = new Vector2f(Scale.X * scaleFactor, Scale.Y * scaleFactor);
+    }
+
+   
+    public override void Destroy()
+    {
+        TransformSystem.UnRegister(this);
+
     }
 }

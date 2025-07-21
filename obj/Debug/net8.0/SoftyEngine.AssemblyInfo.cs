@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SoftyEngine")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a66938622a6d3c3ec676d8f4b460725428909d7e")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9102699f9fac31e902c23e128ec3200ea479af45")]
 [assembly: System.Reflection.AssemblyProductAttribute("SoftyEngine")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SoftyEngine")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

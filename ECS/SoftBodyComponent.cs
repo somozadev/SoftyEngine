@@ -12,6 +12,7 @@ namespace Softine
         public List<PointMassComponent> Frame { get; private set; }
         public SoftBodyType BodyType { get; private set; }
 
+        public BoundingBox BoundingBox { get; set; }
 
         public SoftBodyComponent(SoftBodyType bodyType)
         {
@@ -32,7 +33,8 @@ namespace Softine
                 throw new Exception("NO TRANSFORM COMPONENT ERROR");
             float size = trf.Scale.X;
             float halfSize = size / 2;
-            var center = trf.Position;
+            var componentPosition = trf.Position;
+            var center = componentPosition;
             var radius = trf.Scale.X;
             var numSides = NumSize;
 
@@ -155,6 +157,11 @@ namespace Softine
             if (Springs == null) return;
             foreach (var spring in Springs)
                 entity.AddComponent(spring);
+
+
+            BoundingBox = new BoundingBox(ref componentPosition, trf.Scale);
+            RendererComponent boundingBoxRender = new RendererComponent(BoundingBox.Shape);
+            Entity.AddComponent(boundingBoxRender);
         }
 
         public Vector2f GetPosition()
@@ -198,6 +205,13 @@ namespace Softine
             var cosineAngle = Math.Clamp(dotProduct / (magnitudeCA * magnitudeCB), -1f, 1f);
             var angle = (float)Math.Acos(cosineAngle);
             return angle;
+        }
+
+   
+        public override void Destroy()
+        {
+            PhysicsSystem.UnRegister(this);
+            CollisionSystem.UnRegister(this);
         }
     }
 

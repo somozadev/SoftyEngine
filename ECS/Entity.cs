@@ -20,6 +20,15 @@ public class Entity
         Components.Add(component);
     }
 
+    public void Destroy()
+    {
+        foreach (var component in Components.ToList())
+        {
+            
+            Components.Remove(component);
+            component.Destroy();
+        }
+    }
     public T GetComponent<T>() where T : Component
     {
         return Components.Find(c => c is T) as T;

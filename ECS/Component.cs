@@ -11,6 +11,10 @@ public abstract class Component
         Entity = entity;
     }
 
+    public virtual void Destroy()
+    {
+    }
+
     // public virtual void Update(float deltaTime) { } 
     // public virtual void FixedUpdate(float deltaTime) { } 
 }
