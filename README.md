@@ -10,6 +10,7 @@ Softy Engine is a lightweight basic ECS based physics engine built using C# and 
 Rigidbodies
 Softbodies
 ECS architecture
+Scene management
 Collisions between softbodies
 Collisions between circle rigidbodies
 <br /><br />
@@ -32,7 +33,7 @@ Mouse 1: Adds force to nearby actors <br />
 Mouse 2: Instantiates selected body type and shape <br />
 Space: Change between rigidbody and softbody for instantiation <br />
 Control: Change between circle, square, triangle and polygon shapes for instantiation <br />
-R: <br />
+R: Resets scene <br />
 <br /><br />
 
 ## 🖼 TODO List
