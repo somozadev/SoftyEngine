@@ -3,8 +3,7 @@
 <br />
 Softy Engine is a lightweight basic ECS based physics engine built using C# and SFML, designed to provide hands-on experience in real-time physics and ECS programming. 
 
-[Gif demo](/assets/interact1.gif)
-[Gif demo](/assets/interact2.gif)
+[Softbodies](/assets/interact.gif)                  [Rigidbodies](/assets/interact2.gif)
 
 ## 🛠 Features
 <br />
